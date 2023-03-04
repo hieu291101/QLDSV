@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'ckeditor_uploader',
 ]
 
+CKEDITOR_UPLOAD_PATH = "ckeditor/dsv/"
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -53,6 +55,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'qldsv.urls'
+
+MEDIA_ROOT = '%s/dsv/static/' % BASE_DIR
 
 TEMPLATES = [
     {

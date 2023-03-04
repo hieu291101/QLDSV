@@ -12,10 +12,11 @@ class BaseModel(models.Model):
         abstract = True
 
 class User(AbstractUser):
+    student_number = models.CharField(max_length=10, default=None)
     pass
 
 class Class(BaseModel):
-    name = models.CharField(maxlength=50)
+    name = models.CharField(max_length=50)
     students = models.ManyToManyField('User', related_name='students')
 
 class Course(BaseModel):
@@ -24,13 +25,15 @@ class Course(BaseModel):
     tutor = models.ForeignKey(User, on_delete=models.RESTRICT)
 
 class Mark(BaseModel):
-    grade1 = models.FLoatField()
+    grade1 = models.FloatField()
     grade2 = models.FloatField()
     grade3 = models.FloatField()
     midterm_grade = models.FloatField()
     final_grade = models.FloatField()
-    clock = models.BooleanField(default=False)
-    course = models.OneToOneField(Course, on_delete=models.RETRICT)
+    gpa = models.FloatField()
+    rank = models.CharField(max_length=1)
+    is_clock = models.BooleanField(default=False)
+    course = models.OneToOneField(Course, on_delete=models.RESTRICT)
     student = models.ForeignKey(User, on_delete=models.CASCADE)
 
 class Forum(BaseModel):
