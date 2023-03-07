@@ -12,12 +12,12 @@ class BaseModel(models.Model):
         abstract = True
 
 class User(AbstractUser):
-    student_number = models.CharField(max_length=10, default=None)
-    pass
+    student_number = models.CharField(max_length=10, blank=True )
 
 class Class(BaseModel):
     name = models.CharField(max_length=50)
     students = models.ManyToManyField('User', related_name='students')
+    teacher = models.ForeignKey(User, on_delete=models.RESTRICT)
 
 class Course(BaseModel):
     subject = models.CharField(max_length=255)
