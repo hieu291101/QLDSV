@@ -1,16 +1,53 @@
-from django.shortcuts import render
-from rest_framework import generics, permissions, serializers, views, viewsets
+import pyrebase
+import firebase_admin
+from django.db.models import Q
+from rest_framework import generics, permissions, serializers, views, viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from oauth2_provider.contrib.rest_framework import TokenHasReadWriteScope, TokenHasScope
-from .models import User, Class
+from .models import *
 from django.contrib.auth.models import Group
-from .serializers import UserSerializer, GroupSerializer, RegisterSerializer
+from .serializers import *
+import io, csv, pandas as pd
+from django.shortcuts import render
+from django.conf import settings
+from django.core.mail import send_mail
+from rest_framework import filters
+import requests
+from rest_framework.decorators import api_view
+import uuid
 
+def is_valid(data):
+    if data.is_valid_format.value and data.is_mx_found and data.is_smtp_valid:
+        if not data.is_catchall_email and not data.is_role_email and not data.is_free_email:
+            return True
+    return False
+
+
+def validate_email(email):
+    response = requests.get(settings.API_URL_EMAIL + "&email=" + email)
+    valid = is_valid(response.content)
+    return valid
+
+
+def send(subject, message, recipient):
+    is_a_valid_email = validate_email(recipient)
+    if is_a_valid_email:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.EMAIL_HOST_USER,
+            recipient_list=[recipient])
+    else:
+        print("Not a valid recipient email, cannot send")
 
 # Create your views here.
 class UserList(generics.ListCreateAPIView):
-    permission_class = [permissions.IsAuthenticated, TokenHasReadWriteScope]
+    # permission_class = [permissions.IsAuthenticated, TokenHasReadWriteScope]
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['student_number', 'first_name', 'last_name']
 
 
 class UserDetails(generics.RetrieveAPIView):
@@ -19,7 +56,7 @@ class UserDetails(generics.RetrieveAPIView):
     serializer_class = UserSerializer
 
 
-#Class based view to register user
+# Class based view to register user
 class RegisterUserAPIView(generics.CreateAPIView):
     permission_classes = (permissions.AllowAny,)
     serializer_class = RegisterSerializer
@@ -32,10 +69,187 @@ class GroupList(generics.ListCreateAPIView):
     serializer_class = GroupSerializer
 
 
-class ShowStudentsAPIView(views.APIView):
-    permission_class = [permissions.IsAuthenticated, TokenHasReadWriteScope]
-    def get(self, request, user_id):
-        classroom = Class.objects.filter(teacher_id=user_id)
-        students = User.objects.filter()
+class UserViewSet(viewsets.ViewSet):
+    # permission_class = [permissions.IsAuthenticated, TokenHasReadWriteScope]
+
+    # get student list
+    @action(methods=['POST'], detail=True, url_path='students')
+    def students(self, request, pk):
+        classname = request.data.get('classname')
+        myclass = Myclass.objects.get(name=classname)
+        students = myclass.users.all()
+        teacher = User.objects.filter(myclass=myclass, id=pk)
+
+        if teacher:
+            return Response(StudentsSerializer(students, many=True, context={'request': request}).data,
+                            status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
+    # get mark for student
+    @action(methods=['GET'], detail=True, url_path='mark')
+    def mark(self, request, pk):
+        mark = Mark.objects.filter(student_id=pk)
+
+        if mark:
+            return Response(MarkSerializer(mark, many=True, context={'request': request}).data,
+                            status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+class MarkAPIView(generics.CreateAPIView, views.APIView):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = SaveMarkSerializer
+
+    def get_object(self, pk):
+        return Mark.objects.get(pk=pk)
+
+    # lock grade for students
+    def patch(self, request, pk):
+        mark = self.get_object(pk)
+        serializer = MarkSerializer(mark, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            if mark.is_clock:
+                send("Thông báo về việc có điểm môn " + mark.course.subject,
+                     "Hãy vào trang để xem điểm",
+                     mark.student)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    @api_view(['POST'])
+    def mark_details(self, request, course_id):
+        mark = Mark.objects.filter(course__id=course_id,
+                                   students__id=request.data.get('student_id'))
+        if mark:
+            return Response(MarkSerializer(mark, many=True, context={'request': request}).data,
+                            status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+class CourseListView(views.APIView):
+
+    def post(self, request):
+        course = Mark.objects.filter(student_id=request.user.id, is_clock=True).values('course__id',
+                                                                                                   'course__subject').distinct()
+        if course:
+            return Response(course, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+class UploadFileView(generics.CreateAPIView):
+    serializer_class = FileUploadSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_error=True)
+        file = serializer.validated_data['file']
+        reader = pd.read_csv(file)
+        for _, row in render.iterrows():
+            new_file = Mark(
+                grade=row['Grade'],
+                course=row['Course Name'],
+                student_number=row['Student Number'],
+                mark_type=row['Mark Type']
+            )
+            new_file.save()
+        return Response({"status": "success"},
+                        status.HTTP_201_CREATED)
+
+class CourseViewSet(viewsets.ModelViewSet):
+    serializer_class = CourseSerializer
+
+    def get_queryset(self):
+        def get_queryset(self):
+            course = self.queryset
+            subject = self.request.query_params.get('subject')
+
+            if subject:
+                course = course.filter(subject__icontains=subject)
+
+            return course
+
+
+class ForumViewSet(viewsets.ModelViewSet):
+    serializer_class = ForumSerializer
+
+    def get_queryset(self):
+        def get_queryset(self):
+            forum = self.queryset
+            title = self.request.query_params.get('title')
+
+            if title:
+                forum = forum.filter(title__icontains=title)
+
+            return forum
+
+class CommentViewSet(viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
+
+    def get_queryset(self):
+        def get_queryset(self):
+            comment = self.queryset
+            forum_title = self.request.query_params.get('forum_title')
+
+            if forum_title:
+                comment = comment.filter(forum_title__icontains=forum_title)
+
+            return comment
+
+FIREBASE_CONFIG  = {
+    "apiKey": "AIzaSyBvkhkCqtyng4czwP__szqhYcpzxDzZzkY",
+    "authDomain": "qldsv-64efc.firebaseapp.com",
+    "databaseURL": "https://qldsv-64efc-default-rtdb.firebaseio.com",
+    "projectId": "qldsv-64efc",
+    "storageBucket": "qldsv-64efc.appspot.com",
+    "messagingSenderId": "762995328688",
+    "appId": "1:762995328688:web:8d7a0423469c1884451d75",
+}
+
+# Initialize Firebase
+firebase = pyrebase.initialize_app(FIREBASE_CONFIG)
+database = firebase.database()
+
+class ChatListView(generics.ListAPIView):
+    serializer_class = ChatSerializer
+
+    def get_queryset(self):
+        sender = self.request.query_params.get('sender')
+        receiver = self.request.query_params.get('receiver')
+        queryset = Chat.objects.filter(
+            Q(sender=sender, receiver=receiver) |
+            Q(sender=receiver, receiver=sender)
+        )
+        return queryset
+
+class ChatCreateView(generics.CreateAPIView):
+    serializer_class = ChatSerializer
+
+    def create(self, request):
+        data = request.data
+        serializer = ChatSerializer(data=data)
+        if serializer.is_valid():
+            # Lưu tin nhắn vào Firebase Realtime Database
+            database.child("chat").push(data)
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+    # def create(self, request, *args, **kwargs):
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     self.perform_create(serializer)
+    #     headers = self.get_success_headers(serializer.data)
+    #     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    #
+    # def perform_create(self, serializer):
+    #     chat = serializer.save()
+    #     chat.firebase_key = str(uuid.uuid4())
+    #     ref = database.child("chats").push(chat.firebase_key).push({
+    #         'sender': chat.sender,
+    #         'receiver': chat.receiver,
+    #         'message': chat.message,
+    #         'timestamp': str(chat.timestamp)
+    #     })
+    #     chat.save()

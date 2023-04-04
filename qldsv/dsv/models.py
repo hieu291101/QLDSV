@@ -14,27 +14,39 @@ class BaseModel(models.Model):
 class User(AbstractUser):
     student_number = models.CharField(max_length=10, blank=True )
 
-class Class(BaseModel):
+class Myclass(BaseModel):
     name = models.CharField(max_length=50)
-    students = models.ManyToManyField('User', related_name='students')
-    teacher = models.ForeignKey(User, on_delete=models.RESTRICT)
+    users = models.ManyToManyField(User, through='MyClassUser')
+
+class MyClassUser(models.Model):
+    myclass = models.ForeignKey(Myclass, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
 
 class Course(BaseModel):
     subject = models.CharField(max_length=255)
     description = RichTextField()
     tutor = models.ForeignKey(User, on_delete=models.RESTRICT)
 
+    def __str__(self):
+        return self.subject
+
+class MarkType(BaseModel):
+    type = models.CharField(max_length=50, unique=True)
+
+    def __str__(self):
+        return self.type
+
 class Mark(BaseModel):
-    grade1 = models.FloatField()
-    grade2 = models.FloatField()
-    grade3 = models.FloatField()
-    midterm_grade = models.FloatField()
-    final_grade = models.FloatField()
+    grade = models.FloatField(default=0)
     gpa = models.FloatField()
     rank = models.CharField(max_length=1)
     is_clock = models.BooleanField(default=False)
     course = models.OneToOneField(Course, on_delete=models.RESTRICT)
     student = models.ForeignKey(User, on_delete=models.CASCADE)
+    mark_type = models.ForeignKey(MarkType, on_delete=models.RESTRICT)
+
+    class Meta:
+        unique_together=('student', 'mark_type')
 
 class Forum(BaseModel):
     title = models.CharField(max_length=255)
@@ -45,3 +57,12 @@ class Comment(BaseModel):
     forum = models.ForeignKey(Forum, on_delete=models.CASCADE)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
 
+class Chat(models.Model):
+    sender = models.CharField(max_length=255)
+    receiver = models.CharField(max_length=255)
+    message = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    firebase_key = models.CharField(max_length=255, null=True, blank=True)
+
+    class Meta:
+        ordering = ('timestamp',)

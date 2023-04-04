@@ -143,19 +143,39 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+OAUTH2_INFO = {
+    "client_id" : "TNQqM7OQyxxNfdS9PTwseVETO1coyetAL6f3HVi4",
+    "client_secret" : "PdjripeJ0jYkv1qLODC5dTmT7WQ1dmG7qwxM0g2tcI4qYvIuwj9Z22cbyHWbZNgx2FmaQmy0UJmVBkFKvLXMtSLHScbRRSHqPqdv2QfsMefal7bYQy6MvRzivdSdvlB5"
+}
+
 OAUTH2_PROVIDER = {
     # this is the list of available scopes
-    'SCOPES': {'read': 'Read scope', 'write': 'Write scope', 'groups': 'Access to your groups'}
+    # 'SCOPES': {'read': 'Read scope', 'write': 'Write scope', 'groups': 'Access to your groups'}
+    'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore',
 }
+
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
     ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
+    # 'DEFAULT_PERMISSION_CLASSES': (
+    #     'rest_framework.permissions.IsAuthenticated',
+    # ),
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
     ]
 }
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = 'latrunghieuvt1@gmail.com'
+# EMAIL_HOST_PASSWORD = 'mvvxashdgihahmeq'
+EMAIL_HOST_PASSWORD ='hzyiunjqunvunbcb'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+
+# email validation
+API_KEY_EMAIL = 'b8d969c58872468eb4e1f9d7c5d22962'
+API_URL_EMAIL = 'https://emailvalidation.abstractapi.com/v1/?api_key=' + API_KEY_EMAIL
