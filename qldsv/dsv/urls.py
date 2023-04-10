@@ -9,6 +9,7 @@ router.register(prefix='users', viewset=UserViewSet, basename='users')
 router.register(prefix='courses', viewset=CourseViewSet, basename='courses')
 router.register(prefix='forum', viewset=ForumViewSet, basename='forum')
 router.register(prefix='comment', viewset=CommentViewSet, basename='comment')
+router.register(prefix='chat', viewset=ChatViewSet, basename='chat')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -19,7 +20,8 @@ urlpatterns = [
     path('groups/', GroupList.as_view()),
     path('upload/', UploadFileView.as_view()),
     path('course/', CourseListView.as_view()),
-    path('chat/', ChatCreateView.as_view())
+    path('chat/', ChatListView.as_view()),
+    path('export/', ExportFileView.as_view())
     # path('mark-detail/', MarkView.as_view())
     # re_path('^class/(?P<classname>.+)/$', StudentsViewSet.as_view()),
 ]

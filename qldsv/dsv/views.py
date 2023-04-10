@@ -1,3 +1,6 @@
+import os
+import pathlib
+
 import pyrebase
 import firebase_admin
 from django.db.models import Q
@@ -143,7 +146,7 @@ class UploadFileView(generics.CreateAPIView):
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_error=True)
+        serializer.is_valid(raise_exception=True)
         file = serializer.validated_data['file']
         reader = pd.read_csv(file)
         for _, row in render.iterrows():
@@ -154,6 +157,21 @@ class UploadFileView(generics.CreateAPIView):
                 mark_type=row['Mark Type']
             )
             new_file.save()
+        return Response({"status": "success"},
+                        status.HTTP_201_CREATED)
+
+class ExportFileView(generics.CreateAPIView):
+
+    def post(self, request, *args, **kwargs):
+        data = {'product': ['computer', 'tablet', 'printer', 'laptop'],
+                'price': [850, 200, 150, 1300]
+                }
+        # serializer = self.get_serializer(data=request.data)
+        # serializer.is_valid(raise_exception=True)
+        # file = serializer.validated_data['file']
+        df = pd.DataFrame(data)
+        df.to_csv(pathlib.Path.home() / 'Downloads/export_dataframe.csv', index=False, header=True)
+        print(df)
         return Response({"status": "success"},
                         status.HTTP_201_CREATED)
 
@@ -223,7 +241,8 @@ class ChatListView(generics.ListAPIView):
         )
         return queryset
 
-class ChatCreateView(generics.CreateAPIView):
+class ChatViewSet(viewsets.ModelViewSet, generics.ListAPIView):
+    queryset = Chat.objects.all()
     serializer_class = ChatSerializer
 
     def create(self, request):
@@ -236,20 +255,3 @@ class ChatCreateView(generics.CreateAPIView):
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
 
-    # def create(self, request, *args, **kwargs):
-    #     serializer = self.get_serializer(data=request.data)
-    #     serializer.is_valid(raise_exception=True)
-    #     self.perform_create(serializer)
-    #     headers = self.get_success_headers(serializer.data)
-    #     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-    #
-    # def perform_create(self, serializer):
-    #     chat = serializer.save()
-    #     chat.firebase_key = str(uuid.uuid4())
-    #     ref = database.child("chats").push(chat.firebase_key).push({
-    #         'sender': chat.sender,
-    #         'receiver': chat.receiver,
-    #         'message': chat.message,
-    #         'timestamp': str(chat.timestamp)
-    #     })
-    #     chat.save()
