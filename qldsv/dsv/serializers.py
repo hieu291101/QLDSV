@@ -110,22 +110,22 @@ class MarkTypeSerializer(serializers.ModelSerializer):
 class FileUploadSerializer(serializers.Serializer):
     file = serializers.FileField()
 
-class CourseRetrieveSerializer(serializers.Serializer):
+class CourseRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
         model = Mark
         fields = ('course')
 
-class CourseSerializer(serializers.Serializer):
+class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
         fields = '__all__'
 
-class ForumSerializer(serializers.Serializer):
+class ForumSerializer(serializers.ModelSerializer):
     class Meta:
         model = Forum
         fields = '__all__'
 
-class CommentSerializer(serializers.Serializer):
+class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = '__all__'

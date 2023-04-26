@@ -14,6 +14,9 @@ class BaseModel(models.Model):
 class User(AbstractUser):
     student_number = models.CharField(max_length=10, blank=True )
 
+    def __str__(self):
+        return self.username
+
 class Myclass(BaseModel):
     name = models.CharField(max_length=50)
     users = models.ManyToManyField(User, through='MyClassUser')
@@ -41,21 +44,30 @@ class Mark(BaseModel):
     gpa = models.FloatField()
     rank = models.CharField(max_length=1)
     is_clock = models.BooleanField(default=False)
-    course = models.OneToOneField(Course, on_delete=models.RESTRICT)
+    course = models.ForeignKey(Course, on_delete=models.RESTRICT)
     student = models.ForeignKey(User, on_delete=models.CASCADE)
     mark_type = models.ForeignKey(MarkType, on_delete=models.RESTRICT)
 
     class Meta:
         unique_together=('student', 'mark_type')
 
+    def __str__(self):
+        return self.course.subject + "#" + self.mark_type.type + "#" + self.student.username
+
 class Forum(BaseModel):
     title = models.CharField(max_length=255)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.title
 
 class Comment(BaseModel):
     comment = RichTextField()
     forum = models.ForeignKey(Forum, on_delete=models.CASCADE)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.comment
 
 class Chat(models.Model):
     sender = models.CharField(max_length=255)

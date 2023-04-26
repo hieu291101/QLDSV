@@ -102,7 +102,7 @@ class UserViewSet(viewsets.ViewSet):
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
-class MarkAPIView(generics.CreateAPIView, views.APIView):
+class SaveMarkAPIView(generics.CreateAPIView, views.APIView):
     permission_classes = (permissions.AllowAny,)
     serializer_class = SaveMarkSerializer
 
@@ -122,10 +122,14 @@ class MarkAPIView(generics.CreateAPIView, views.APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    @api_view(['POST'])
-    def mark_details(self, request, course_id):
-        mark = Mark.objects.filter(course__id=course_id,
-                                   students__id=request.data.get('student_id'))
+
+class MarkViewSet(viewsets.ViewSet):
+    permission_classes = (permissions.AllowAny,)
+
+    @action(methods=['POST'], detail=True, url_path='mark')
+    def mark_details(self, request, pk):
+        mark = Mark.objects.filter(course_id=pk).filter(student_id=request.data.get('student_id'))
+
         if mark:
             return Response(MarkSerializer(mark, many=True, context={'request': request}).data,
                             status=status.HTTP_200_OK)
@@ -135,7 +139,7 @@ class MarkAPIView(generics.CreateAPIView, views.APIView):
 class CourseListView(views.APIView):
 
     def post(self, request):
-        course = Mark.objects.filter(student_id=request.user.id, is_clock=True).values('course__id',
+        course = Mark.objects.filter(student_id=request.data.get('student_id')).values('course__id',
                                                                                                    'course__subject').distinct()
         if course:
             return Response(course, status=status.HTTP_200_OK)
@@ -149,7 +153,7 @@ class UploadFileView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         file = serializer.validated_data['file']
         reader = pd.read_csv(file)
-        for _, row in render.iterrows():
+        for _, row in reader.iterrows():
             new_file = Mark(
                 grade=row['Grade'],
                 course=row['Course Name'],
@@ -161,7 +165,7 @@ class UploadFileView(generics.CreateAPIView):
                         status.HTTP_201_CREATED)
 
 class ExportFileView(generics.CreateAPIView):
-
+    serializer_class = None
     def post(self, request, *args, **kwargs):
         data = {'product': ['computer', 'tablet', 'printer', 'laptop'],
                 'price': [850, 200, 150, 1300]
@@ -177,43 +181,43 @@ class ExportFileView(generics.CreateAPIView):
 
 class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
+    queryset = Course.objects.all()
 
     def get_queryset(self):
-        def get_queryset(self):
-            course = self.queryset
-            subject = self.request.query_params.get('subject')
+        course = self.queryset
+        subject = self.request.query_params.get('subject')
 
-            if subject:
-                course = course.filter(subject__icontains=subject)
+        if subject:
+            course = course.filter(subject__icontains=subject)
 
-            return course
+        return course
 
 
 class ForumViewSet(viewsets.ModelViewSet):
     serializer_class = ForumSerializer
+    queryset = Forum.objects.all()
 
     def get_queryset(self):
-        def get_queryset(self):
-            forum = self.queryset
-            title = self.request.query_params.get('title')
+        forum = self.queryset
+        title = self.request.query_params.get('title')
 
-            if title:
-                forum = forum.filter(title__icontains=title)
+        if title:
+            forum = forum.filter(title__icontains=title)
 
-            return forum
+        return forum
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
+    queryset = Comment.objects.all()
 
     def get_queryset(self):
-        def get_queryset(self):
-            comment = self.queryset
-            forum_title = self.request.query_params.get('forum_title')
+        comment = self.queryset
+        forum_title = self.request.query_params.get('forum_title')
 
-            if forum_title:
-                comment = comment.filter(forum_title__icontains=forum_title)
+        if forum_title:
+            comment = comment.filter(forum_title__icontains=forum_title)
 
-            return comment
+        return comment
 
 FIREBASE_CONFIG  = {
     "apiKey": "AIzaSyBvkhkCqtyng4czwP__szqhYcpzxDzZzkY",
