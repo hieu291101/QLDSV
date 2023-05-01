@@ -20,10 +20,16 @@ class User(AbstractUser):
 class Myclass(BaseModel):
     name = models.CharField(max_length=50)
     users = models.ManyToManyField(User, through='MyClassUser')
+    
+    def __str__(self):
+        return self.name
 
 class MyClassUser(models.Model):
     myclass = models.ForeignKey(Myclass, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.myclass.name + " - " + self.user.username
 
 class Course(BaseModel):
     subject = models.CharField(max_length=255)
@@ -41,7 +47,7 @@ class MarkType(BaseModel):
 
 class Mark(BaseModel):
     grade = models.FloatField(default=0)
-    gpa = models.FloatField()
+    gpa = models.FloatField(default=0)
     rank = models.CharField(max_length=1)
     is_clock = models.BooleanField(default=False)
     course = models.ForeignKey(Course, on_delete=models.RESTRICT)

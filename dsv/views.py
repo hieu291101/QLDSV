@@ -1,5 +1,6 @@
 import os
 import pathlib
+import string
 
 import pyrebase
 import firebase_admin
@@ -116,15 +117,25 @@ class SaveMarkAPIView(generics.CreateAPIView, views.APIView):
         if serializer.is_valid():
             serializer.save()
             if mark.is_clock:
-                send("Thông báo về việc có điểm môn " + mark.course.subject,
+                send("Thông báo về việc có điểm môn " + mark.queryset.values('course'),
                      "Hãy vào trang để xem điểm",
-                     mark.student)
+                     mark.queryset.values('student'))
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
 class MarkViewSet(viewsets.ViewSet):
     permission_classes = (permissions.AllowAny,)
+
+    @action(methods=['POST'], detail=True, url_path='student')
+    def mark_details(self, request, pk):
+        mark = Mark.objects.filter(course_id=pk)
+
+        if mark:
+            return Response(MarkSerializer(mark, many=True, context={'request': request}).data,
+                            status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['POST'], detail=True, url_path='mark')
     def mark_details(self, request, pk):
@@ -146,6 +157,7 @@ class CourseListView(views.APIView):
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
 class UploadFileView(generics.CreateAPIView):
+    permission_classes = (permissions.AllowAny,)
     serializer_class = FileUploadSerializer
 
     def post(self, request, *args, **kwargs):
@@ -153,16 +165,48 @@ class UploadFileView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         file = serializer.validated_data['file']
         reader = pd.read_csv(file)
+        list_review = []
         for _, row in reader.iterrows():
+            student = User.objects.filter(student_number=row['Student Number'])
+            marktype = MarkType.objects.filter(type=row['Mark Type'])
+            course = Course.objects.filter(subject=row['Course Name'])
+            grade = row['Grade']
+            if not str(grade).isnumeric():
+                return Response({'message': f'Điểm : \"{grade}\" (không đúng định dạng)'},
+                                status=status.HTTP_200_OK)
+
+            if not student:
+                student_number = row['Student Number']
+                return Response({'message': f'Mã số sinh viên : \"{student_number}\" (không tồn tại)' }, status=status.HTTP_200_OK)
+
+            if not marktype:
+                mark_type = row['Mark Type']
+                return Response({'message': f'Loại điểm : \"{mark_type}\" (không tồn tại)' }, status=status.HTTP_200_OK)
+
+            if not course:
+                course_name = row['Course Name']
+                print(course)
+                print("course")
+                return Response({'message': f'Tên môn học : \"{course_name}\" không tồn tại' }, status=status.HTTP_200_OK)
+
             new_file = Mark(
-                grade=row['Grade'],
-                course=row['Course Name'],
-                student_number=row['Student Number'],
-                mark_type=row['Mark Type']
+                grade=float(grade),
+                course=course.first(),
+                # course_id=course.first().id,
+                student=student.first(),
+                # student_id=student.first().id,
+                mark_type=marktype.first(),
+                # mark_type_id=student.first().id,
+                gpa=0
             )
+            list_review.append(new_file)
             new_file.save()
-        return Response({"status": "success"},
-                        status.HTTP_201_CREATED)
+
+        if list_review.__len__().__gt__(0):
+            return Response(MarkSerializer(list_review, many=True, context={'request': request}).data,
+                            status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 class ExportFileView(generics.CreateAPIView):
     serializer_class = None
