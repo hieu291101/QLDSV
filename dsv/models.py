@@ -24,13 +24,6 @@ class Myclass(BaseModel):
     def __str__(self):
         return self.name
 
-class MyClassUser(models.Model):
-    myclass = models.ForeignKey(Myclass, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return self.myclass.name + " - " + self.user.username
-
 class Course(BaseModel):
     subject = models.CharField(max_length=255)
     description = RichTextField()
@@ -38,6 +31,13 @@ class Course(BaseModel):
 
     def __str__(self):
         return self.subject
+
+class MyClassUser(models.Model):
+    myclass = models.ForeignKey(Myclass, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.myclass.name + " - " + self.user.username
 
 class MarkType(BaseModel):
     type = models.CharField(max_length=50, unique=True)

@@ -11,6 +11,7 @@ router.register(prefix='forum', viewset=ForumViewSet, basename='forum')
 router.register(prefix='comment', viewset=CommentViewSet, basename='comment')
 router.register(prefix='chat', viewset=ChatViewSet, basename='chat')
 router.register(prefix='courses', viewset=MarkViewSet, basename='courses')
+router.register(prefix='classes', viewset=MyClassViewSet, basename='classes')
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -66,17 +66,33 @@ class GroupSerializer(serializers.ModelSerializer):
 class StudentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['student_number', 'email', 'first_name', 'last_name']
+        fields = ['id', 'student_number', 'email', 'first_name', 'last_name']
 
 class ClassSerializer(serializers.ModelSerializer):
+    users = StudentsSerializer(many=True)
     class Meta:
         model = Myclass
         fields = '__all__'
+        depth = 1
+
+class MarkTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MarkType
+        fields = ('id', 'type')
+
+class CourseRetrieveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Course
+        fields = ['subject']
 
 class MarkSerializer(serializers.ModelSerializer):
+    student = StudentsSerializer()
+    mark_type = MarkTypeSerializer()
+    course = CourseRetrieveSerializer()
     class Meta:
         model = Mark
-        fields = ['grade', 'gpa', 'rank', 'is_clock', 'course', 'mark_type']
+        fields = ['grade', 'gpa', 'rank', 'is_clock', 'course', 'mark_type', 'student']
+        depth = 1
 
 class SaveMarkSerializer(serializers.ModelSerializer):
     grade = serializers.FloatField(max_value=10, min_value=0)
@@ -102,18 +118,8 @@ class SaveMarkSerializer(serializers.ModelSerializer):
         mark.save()
         return mark
 
-class MarkTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MarkType
-        fields = ('type')
-
 class FileUploadSerializer(serializers.Serializer):
     file = serializers.FileField()
-
-class CourseRetrieveSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Mark
-        fields = ('course')
 
 class CourseSerializer(serializers.ModelSerializer):
     class Meta:

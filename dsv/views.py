@@ -102,6 +102,16 @@ class UserViewSet(viewsets.ViewSet):
 
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
+    @action(methods=['POST'], detail=True, url_path='course')
+    def get_course_by_teacher(self, request, pk):
+        course = Course.objects.filter(tutor_id=pk)
+
+        if course:
+            return Response(CourseSerializer(course, many=True, context={'request': request}).data,
+                            status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
 
 class SaveMarkAPIView(generics.CreateAPIView, views.APIView):
     permission_classes = (permissions.AllowAny,)
@@ -127,6 +137,17 @@ class SaveMarkAPIView(generics.CreateAPIView, views.APIView):
 class MarkViewSet(viewsets.ViewSet):
     permission_classes = (permissions.AllowAny,)
 
+    @action(methods=['POST'], detail=True, url_path='students-by-teacher')
+    def mark_details(self, request, pk):
+        course = Course.objects.filter(tutor_id=request.data.get('teacher_id'))
+        mark = Mark.objects.filter(course=course)
+
+        if mark:
+            return Response(MarkSerializer(mark, many=True, context={'request': request}).data,
+                            status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
     @action(methods=['POST'], detail=True, url_path='student')
     def mark_details(self, request, pk):
         mark = Mark.objects.filter(course_id=pk)
@@ -137,9 +158,19 @@ class MarkViewSet(viewsets.ViewSet):
 
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=['POST'], detail=True, url_path='mark')
+    @action(methods=['POST'], detail=True, url_path='mark-detail')
     def mark_details(self, request, pk):
         mark = Mark.objects.filter(course_id=pk).filter(student_id=request.data.get('student_id'))
+
+        if mark:
+            return Response(MarkSerializer(mark, many=True, context={'request': request}).data,
+                            status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=['POST'], detail=True, url_path='mark')
+    def get_mark_list(self, request, pk):
+        mark = Mark.objects.filter(course_id=pk)
 
         if mark:
             return Response(MarkSerializer(mark, many=True, context={'request': request}).data,
@@ -236,7 +267,6 @@ class CourseViewSet(viewsets.ModelViewSet):
 
         return course
 
-
 class ForumViewSet(viewsets.ModelViewSet):
     serializer_class = ForumSerializer
     queryset = Forum.objects.all()
@@ -303,3 +333,6 @@ class ChatViewSet(viewsets.ModelViewSet, generics.ListAPIView):
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
 
+class MyClassViewSet(viewsets.ModelViewSet):
+    queryset = Myclass.objects.all()
+    serializer_class = ClassSerializer
