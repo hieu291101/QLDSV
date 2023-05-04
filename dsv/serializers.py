@@ -122,9 +122,11 @@ class FileUploadSerializer(serializers.Serializer):
     file = serializers.FileField()
 
 class CourseSerializer(serializers.ModelSerializer):
+    tutor = UserSerializer()
     class Meta:
         model = Course
         fields = '__all__'
+        depth = 1
 
 class ForumSerializer(serializers.ModelSerializer):
     class Meta:
