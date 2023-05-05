@@ -60,6 +60,17 @@ class UserDetails(generics.RetrieveAPIView):
     serializer_class = UserSerializer
 
 
+class CurrentUserDetails(views.APIView):
+    permission_class = [permissions.IsAuthenticated, TokenHasReadWriteScope]
+
+    def get(self, request):
+        user = User.objects.get(request.user.id)
+        if user:
+            return Response(UserSerializer(user, many=True, context={'request': request}).data,
+                            status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
 # Class based view to register user
 class RegisterUserAPIView(generics.CreateAPIView):
     permission_classes = (permissions.AllowAny,)
@@ -242,16 +253,14 @@ class UploadFileView(generics.CreateAPIView):
 class ExportFileView(generics.CreateAPIView):
     serializer_class = None
     def post(self, request, *args, **kwargs):
-        data = {'product': ['computer', 'tablet', 'printer', 'laptop'],
-                'price': [850, 200, 150, 1300]
-                }
+        data = request.data.get('students')
         # serializer = self.get_serializer(data=request.data)
         # serializer.is_valid(raise_exception=True)
         # file = serializer.validated_data['file']
         df = pd.DataFrame(data)
-        df.to_csv(pathlib.Path.home() / 'Downloads/export_dataframe.csv', index=False, header=True)
+        # df.to_csv(pathlib.Path.home() / 'Downloads/export_dataframe.csv', index=False, header=True, encoding='utf-8')
         print(df)
-        return Response({"status": "success"},
+        return Response({"status": "success", "csv_url": f'{pathlib.Path.home()}\\Downloads\\export_dataframe.csv'},
                         status.HTTP_201_CREATED)
 
 class CourseViewSet(viewsets.ModelViewSet):

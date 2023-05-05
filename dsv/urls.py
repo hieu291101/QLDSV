@@ -17,6 +17,7 @@ urlpatterns = [
     path('', include(router.urls)),
     path('users/', UserList.as_view()),
     path('users/<pk>/', UserDetails.as_view()),
+    path('users/current-user/', CurrentUserDetails.as_view()),
     path('register/', RegisterUserAPIView.as_view()),
     path('mark/', SaveMarkAPIView.as_view()),
     path('groups/', GroupList.as_view()),
