@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+import cloudinary
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
@@ -24,7 +26,11 @@ SECRET_KEY = 'django-insecure-m8_a%a3rb_-gzeem8gpz@d@m%cgm@s72wwm60ylu6-&!d5e@#g
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "127.0.0.1"
+]
+
+CSRF_TRUSTED_ORIGINS = ["http://localhost:3000"]
 
 
 # Application definition
@@ -43,6 +49,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'drf_yasg',
+    'cloudinary'
 ]
 
 CKEDITOR_UPLOAD_PATH = "ckeditor/dsv/"
@@ -55,10 +62,19 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware'
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOW_METHODS = [
+'DELETE',
+'GET',
+'OPTIONS',
+'PATCH',
+'POST',
+'PUT',
+]
 
 ROOT_URLCONF = 'qldsv.urls'
 
@@ -149,7 +165,7 @@ OAUTH2_INFO = {
 
 OAUTH2_PROVIDER = {
     # this is the list of available scopes
-    # 'SCOPES': {'read': 'Read scope', 'write': 'Write scope', 'groups': 'Access to your groups'}
+    'SCOPES': {'read': 'Read scope', 'write': 'Write scope', 'groups': 'Access to your groups'},
     'OAUTH2_BACKEND_CLASS': 'oauth2_provider.oauth2_backends.JSONOAuthLibCore',
 }
 
@@ -164,7 +180,9 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
         'rest_framework.parsers.MultiPartParser'
-    ]
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 30
 }
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
@@ -179,3 +197,9 @@ EMAIL_USE_SSL = False
 # email validation
 API_KEY_EMAIL = 'b8d969c58872468eb4e1f9d7c5d22962'
 API_URL_EMAIL = 'https://emailvalidation.abstractapi.com/v1/?api_key=' + API_KEY_EMAIL
+
+cloudinary.config(
+  cloud_name = "dc21ccd7k",
+  api_key = "173844748124447",
+  api_secret = "-HQ052ZvYbC3O21GnHTIXtXB-Qc"
+)

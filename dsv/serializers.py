@@ -9,7 +9,7 @@ from .models import *
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'groups', 'image']
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -41,7 +41,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError(
-                {"password": "Password fields didn't match."})
+                {"password": "Password fields didn't match.", "password2": "Password fields didn't match."})
         return attrs
 
     def create(self, validated_data):
@@ -66,7 +66,7 @@ class GroupSerializer(serializers.ModelSerializer):
 class StudentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'student_number', 'email', 'first_name', 'last_name']
+        fields = ['id', 'student_number', 'email', 'first_name', 'last_name', 'image']
 
 class ClassSerializer(serializers.ModelSerializer):
     users = StudentsSerializer(many=True)

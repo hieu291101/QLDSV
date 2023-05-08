@@ -8,7 +8,7 @@ from django.db.models import Q
 from rest_framework import generics, permissions, serializers, views, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from oauth2_provider.contrib.rest_framework import TokenHasReadWriteScope, TokenHasScope
+from oauth2_provider.contrib.rest_framework import TokenHasReadWriteScope, TokenHasScope, OAuth2Authentication
 from .models import *
 from django.contrib.auth.models import Group
 from .serializers import *
@@ -64,10 +64,32 @@ class CurrentUserDetails(views.APIView):
     permission_class = [permissions.IsAuthenticated, TokenHasReadWriteScope]
 
     def get(self, request):
-        user = User.objects.get(request.user.id)
+        user = request.user
         if user:
-            return Response(UserSerializer(user, many=True, context={'request': request}).data,
+            return Response(UserSerializer(user, context={'request': request}).data,
                             status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+class CheckGroupTeacher(views.APIView):
+    permission_class = [permissions.IsAuthenticated, TokenHasReadWriteScope]
+
+    def get(self, request):
+        user = request.user
+        admin_group = Group.objects.get(name='Teacher')
+        if user and admin_group in user.groups.all():
+            return Response({"status": "success"}, status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+class CheckGroupStudent(views.APIView):
+    permission_class = [permissions.IsAuthenticated, TokenHasReadWriteScope]
+
+    def get(self, request):
+        user = request.user
+        admin_group = Group.objects.get(name='Student')
+        if user and admin_group in user.groups.all():
+            return Response({"status": "success"}, status.HTTP_200_OK)
 
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
@@ -92,6 +114,7 @@ class UserViewSet(viewsets.ViewSet):
     def students(self, request, pk):
         classname = request.data.get('classname')
         myclass = Myclass.objects.get(name=classname)
+
         students = myclass.users.all()
         teacher = User.objects.filter(myclass=myclass, id=pk)
 
@@ -258,7 +281,7 @@ class ExportFileView(generics.CreateAPIView):
         # serializer.is_valid(raise_exception=True)
         # file = serializer.validated_data['file']
         df = pd.DataFrame(data)
-        # df.to_csv(pathlib.Path.home() / 'Downloads/export_dataframe.csv', index=False, header=True, encoding='utf-8')
+        df.to_csv(pathlib.Path.home() / 'Downloads/export_dataframe.csv', index=False, header=True, encoding='utf-8')
         print(df)
         return Response({"status": "success", "csv_url": f'{pathlib.Path.home()}\\Downloads\\export_dataframe.csv'},
                         status.HTTP_201_CREATED)
